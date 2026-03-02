@@ -8,12 +8,13 @@ import {
   useEffect,
   type ReactNode,
 } from "react"
+import CryptoJS from "crypto-js"
 import type { User, LoginCredentials } from "@/lib/types"
+import { API_URL } from "@/lib/constants"
 import {
   getStoredUser,
   storeUser,
   clearAuth,
-  MOCK_USERS,
 } from "@/lib/auth"
 
 interface AuthContextValue {
@@ -38,39 +39,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
+  const SECRET_KEY = process.env.NEXT_PUBLIC_CRYPTO_SECRET!
+
+  const encryptPassword = (password: string) => {
+    const encrypted = CryptoJS.AES.encrypt(password, CryptoJS.enc.Utf8.parse(SECRET_KEY), {
+      mode: CryptoJS.mode.ECB,
+      padding: CryptoJS.pad.Pkcs7
+    }).toString();
+    return encrypted;
+  }
+
   const login = useCallback(
     async (credentials: LoginCredentials): Promise<{ success: boolean; error?: string }> => {
       try {
-        // ── MOCK: reemplazar por fetch al backend ──────────
-        // const res = await fetch(`${API_URL}/auth/login`, {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //     userName: credentials.userName.toLowerCase(),
-        //     password: hashedPassword, // hash con CryptoJS
-        //     remember: credentials.remember,
-        //   }),
-        // })
-        // const data = await res.json()
+        const encryptedPassword = encryptPassword(credentials.password)
 
-        const found = MOCK_USERS.find(
-          (u) =>
-            u.userName.toLowerCase() === credentials.userName.toLowerCase() &&
-            u.password === credentials.password
-        )
+        const res = await fetch(`${API_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userName: credentials.userName,
+            password: encryptedPassword,
+          }),
+        })
 
-        if (!found) {
-          return { success: false, error: "Usuario o contrasena incorrectos" }
+        if (!res.ok) {
+          const errorText = await res.text()
+          return { success: false, error: errorText || "Usuario o contrasena incorrectos" }
         }
 
+        const data = await res.json()
+
         const loggedUser: User = {
-          id: found.id,
-          name: found.name,
-          surname: found.surname,
-          userName: found.userName,
-          role: found.role,
-          area: found.area,
-          token: found.token,
+          id: data.id,
+          name: data.name,
+          surname: data.surname,
+          userName: data.userName,
+          role: data.role,
+          area: data.area,
+          token: data.token,
         }
 
         storeUser(loggedUser, credentials.remember)

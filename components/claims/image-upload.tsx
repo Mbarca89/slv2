@@ -2,7 +2,9 @@
 
 import { useCallback, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { ImagePlus, X } from "lucide-react"
+import { ImagePlus, X, Loader2 } from "lucide-react"
+import { uploadImage } from "@/lib/api"
+import { toast } from "sonner"
 
 interface ImageUploadProps {
   images: string[]
@@ -12,22 +14,31 @@ interface ImageUploadProps {
 export function ImageUpload({ images, onChange }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const processFiles = useCallback(
-    (files: FileList | File[]) => {
+    async (files: FileList | File[]) => {
       const fileArray = Array.from(files)
       const imageFiles = fileArray.filter((f) => f.type.startsWith("image/"))
 
-      imageFiles.forEach((file) => {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const base64 = e.target?.result as string
-          if (base64) {
-            onChange([...images, base64])
-          }
+      if (imageFiles.length === 0) return
+
+      setUploading(true)
+      const uploadedUrls: string[] = []
+
+      for (const file of imageFiles) {
+        const url = await uploadImage(file)
+        if (url) {
+          uploadedUrls.push(url)
+        } else {
+          toast.error(`Error al subir ${file.name}`)
         }
-        reader.readAsDataURL(file)
-      })
+      }
+
+      if (uploadedUrls.length > 0) {
+        onChange([...images, ...uploadedUrls])
+      }
+      setUploading(false)
     },
     [images, onChange]
   )
@@ -61,28 +72,39 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !uploading && inputRef.current?.click()}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors ${
-          isDragging
+          uploading
+            ? "pointer-events-none opacity-60 border-border"
+            : isDragging
             ? "border-primary bg-primary/5"
             : "border-border hover:border-muted-foreground/30 hover:bg-muted/30"
         }`}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+          if ((e.key === "Enter" || e.key === " ") && !uploading) {
             e.preventDefault()
             inputRef.current?.click()
           }
         }}
       >
-        <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
-        <p className="mt-2 text-sm text-muted-foreground">
-          Arrastra imagenes aqui o hace click para seleccionar
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground/60">
-          PNG, JPG, GIF - Capturas de pantalla, fotos, etc.
-        </p>
+        {uploading ? (
+          <>
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50" />
+            <p className="mt-2 text-sm text-muted-foreground">Subiendo imagenes...</p>
+          </>
+        ) : (
+          <>
+            <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Arrastra imagenes aqui o hace click para seleccionar
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground/60">
+              PNG, JPG, GIF - Capturas de pantalla, fotos, etc.
+            </p>
+          </>
+        )}
         <input
           ref={inputRef}
           type="file"
@@ -105,6 +127,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
                 src={src}
                 alt={`Captura ${i + 1}`}
                 className="h-full w-full object-cover"
+                crossOrigin="anonymous"
               />
               <Button
                 variant="destructive"

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -16,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Plus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 const schema = z.object({
@@ -28,14 +29,17 @@ type FormValues = z.infer<typeof schema>
 
 export function RecurringTaskForm() {
   const { addRecurringTask } = useData()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { title: "", description: "" },
   })
 
-  function onSubmit(values: FormValues) {
-    addRecurringTask(values)
+  async function onSubmit(values: FormValues) {
+    setIsSubmitting(true)
+    await addRecurringTask(values)
     form.reset()
+    setIsSubmitting(false)
     toast.success("Tarea recurrente guardada")
   }
 
@@ -77,9 +81,18 @@ export function RecurringTaskForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full sm:w-auto self-end">
-              <Plus className="mr-2 h-4 w-4" />
-              Guardar tarea
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto self-end">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Guardar tarea
+                </>
+              )}
             </Button>
           </form>
         </Form>

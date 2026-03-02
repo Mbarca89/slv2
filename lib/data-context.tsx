@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react"
 import type {
@@ -18,37 +19,38 @@ import type {
 } from "@/lib/types"
 import { useAuth } from "@/lib/auth-context"
 import { format } from "date-fns"
+import * as api from "@/lib/api"
+import { toast } from "sonner"
 
 interface DataContextValue {
   // Tareas recurrentes
   recurringTasks: RecurringTask[]
-  addRecurringTask: (data: RecurringTaskFormValues) => void
-  removeRecurringTask: (id: string) => void
+  addRecurringTask: (data: RecurringTaskFormValues) => Promise<void>
+  removeRecurringTask: (id: number) => Promise<void>
+  loadingRecurring: boolean
 
   // Tareas del dia
   dailyTasks: DailyTask[]
-  activateRecurringTask: (task: RecurringTask) => void
-  isRecurringActivatedToday: (taskId: string) => boolean
+  activateRecurringTask: (task: RecurringTask) => Promise<void>
+  isRecurringActivatedToday: (taskId: number) => boolean
+  loadingDaily: boolean
 
   // Reclamos
   claims: Claim[]
-  addClaim: (data: ClaimFormValues) => void
+  addClaim: (data: ClaimFormValues) => Promise<void>
+  loadingClaims: boolean
 
   // Trabajos realizados
   completedWorks: CompletedWork[]
-  addCompletedWork: (data: CompletedWorkFormValues) => void
+  addCompletedWork: (data: CompletedWorkFormValues) => Promise<void>
+  loadingWorks: boolean
 
   // Helpers
   todayStr: string
+  refreshAll: () => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
-
-let idCounter = 0
-function genId() {
-  idCounter += 1
-  return `local-${Date.now()}-${idCounter}`
-}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -59,45 +61,101 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [claims, setClaims] = useState<Claim[]>([])
   const [completedWorks, setCompletedWorks] = useState<CompletedWork[]>([])
 
+  const [loadingRecurring, setLoadingRecurring] = useState(false)
+  const [loadingDaily, setLoadingDaily] = useState(false)
+  const [loadingClaims, setLoadingClaims] = useState(false)
+  const [loadingWorks, setLoadingWorks] = useState(false)
+
+  // ── Fetch data on mount ─────────────────────────────────
+  const fetchRecurring = useCallback(async () => {
+    if (!user) return
+    setLoadingRecurring(true)
+    const data = await api.getRecurringTasks(user.id)
+    setRecurringTasks(data)
+    setLoadingRecurring(false)
+  }, [user])
+
+  const fetchDaily = useCallback(async () => {
+    if (!user) return
+    setLoadingDaily(true)
+    const data = await api.getDailyTasks(user.id, todayStr)
+    setDailyTasks(data)
+    setLoadingDaily(false)
+  }, [user, todayStr])
+
+  const fetchClaims = useCallback(async () => {
+    if (!user) return
+    setLoadingClaims(true)
+    const data = await api.getClaims(user.id, todayStr)
+    setClaims(data)
+    setLoadingClaims(false)
+  }, [user, todayStr])
+
+  const fetchWorks = useCallback(async () => {
+    if (!user) return
+    setLoadingWorks(true)
+    const data = await api.getCompletedWorks(user.id, todayStr)
+    setCompletedWorks(data)
+    setLoadingWorks(false)
+  }, [user, todayStr])
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([fetchRecurring(), fetchDaily(), fetchClaims(), fetchWorks()])
+  }, [fetchRecurring, fetchDaily, fetchClaims, fetchWorks])
+
+  useEffect(() => {
+    if (user) {
+      refreshAll()
+    }
+  }, [user, refreshAll])
+
   // ── Tareas recurrentes ──────────────────────────────────
   const addRecurringTask = useCallback(
-    (data: RecurringTaskFormValues) => {
+    async (data: RecurringTaskFormValues) => {
       if (!user) return
-      const task: RecurringTask = {
-        id: genId(),
-        userId: user.id,
-        title: data.title,
-        description: data.description,
+      const created = await api.createRecurringTask(user.id, data)
+      if (created) {
+        setRecurringTasks((prev) => [...prev, created])
+      } else {
+        toast.error("Error al guardar la tarea recurrente")
       }
-      setRecurringTasks((prev) => [...prev, task])
     },
     [user]
   )
 
-  const removeRecurringTask = useCallback((id: string) => {
-    setRecurringTasks((prev) => prev.filter((t) => t.id !== id))
+  const removeRecurringTask = useCallback(async (id: number) => {
+    const success = await api.deleteRecurringTask(id)
+    if (success) {
+      setRecurringTasks((prev) => prev.filter((t) => t.id !== id))
+    } else {
+      toast.error("Error al eliminar la tarea recurrente")
+    }
   }, [])
 
   // ── Activar recurrente como tarea del dia ───────────────
   const activateRecurringTask = useCallback(
-    (task: RecurringTask) => {
+    async (task: RecurringTask) => {
       if (!user) return
-      const daily: DailyTask = {
-        id: genId(),
+      const dailyData = {
         userId: user.id,
         userName: `${user.name} ${user.surname}`,
         date: todayStr,
-        type: "recurrente",
+        type: "recurrente" as const,
         title: task.title,
         description: task.description,
       }
-      setDailyTasks((prev) => [...prev, daily])
+      const created = await api.addDailyTask(dailyData)
+      if (created) {
+        setDailyTasks((prev) => [...prev, created])
+      } else {
+        toast.error("Error al activar la tarea")
+      }
     },
     [user, todayStr]
   )
 
   const isRecurringActivatedToday = useCallback(
-    (taskId: string) => {
+    (taskId: number) => {
       const task = recurringTasks.find((t) => t.id === taskId)
       if (!task) return false
       return dailyTasks.some(
@@ -112,60 +170,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // ── Reclamos ────────────────────────────────────────────
   const addClaim = useCallback(
-    (data: ClaimFormValues) => {
+    async (data: ClaimFormValues) => {
       if (!user) return
-      const claim: Claim = {
-        id: genId(),
-        userId: user.id,
-        userName: `${user.name} ${user.surname}`,
-        date: todayStr,
-        ...data,
+      const userName = `${user.name} ${user.surname}`
+      const created = await api.createClaim(user.id, userName, data)
+      if (created) {
+        setClaims((prev) => [...prev, created])
+        // Refetch daily tasks since backend may have added a daily task entry
+        await fetchDaily()
+      } else {
+        toast.error("Error al registrar el reclamo")
       }
-      setClaims((prev) => [...prev, claim])
-
-      // Tambien agregar como tarea del dia
-      const daily: DailyTask = {
-        id: genId(),
-        userId: user.id,
-        userName: `${user.name} ${user.surname}`,
-        date: todayStr,
-        type: "reclamo",
-        title: data.title,
-        description: data.description,
-        area: data.area,
-      }
-      setDailyTasks((prev) => [...prev, daily])
     },
-    [user, todayStr]
+    [user, fetchDaily]
   )
 
   // ── Trabajos realizados ─────────────────────────────────
   const addCompletedWork = useCallback(
-    (data: CompletedWorkFormValues) => {
+    async (data: CompletedWorkFormValues) => {
       if (!user) return
-      const work: CompletedWork = {
-        id: genId(),
-        userId: user.id,
-        userName: `${user.name} ${user.surname}`,
-        date: todayStr,
-        ...data,
+      const userName = `${user.name} ${user.surname}`
+      const created = await api.createCompletedWork(user.id, userName, data)
+      if (created) {
+        setCompletedWorks((prev) => [...prev, created])
+        // Refetch daily tasks since backend may have added a daily task entry
+        await fetchDaily()
+      } else {
+        toast.error("Error al registrar el trabajo")
       }
-      setCompletedWorks((prev) => [...prev, work])
-
-      // Tambien agregar como tarea del dia
-      const daily: DailyTask = {
-        id: genId(),
-        userId: user.id,
-        userName: `${user.name} ${user.surname}`,
-        date: todayStr,
-        type: "trabajo",
-        title: data.title,
-        description: data.description,
-        area: data.area,
-      }
-      setDailyTasks((prev) => [...prev, daily])
     },
-    [user, todayStr]
+    [user, fetchDaily]
   )
 
   return (
@@ -174,14 +208,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         recurringTasks,
         addRecurringTask,
         removeRecurringTask,
+        loadingRecurring,
         dailyTasks,
         activateRecurringTask,
         isRecurringActivatedToday,
+        loadingDaily,
         claims,
         addClaim,
+        loadingClaims,
         completedWorks,
         addCompletedWork,
+        loadingWorks,
         todayStr,
+        refreshAll,
       }}
     >
       {children}

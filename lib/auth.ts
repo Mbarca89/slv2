@@ -22,7 +22,7 @@ export function getStoredUser(): User | null {
   if (!token || !id || !name) return null
 
   return {
-    id: id,
+    id: Number(id),
     name: name,
     surname: localStorage.getItem("surname") ?? "",
     userName: localStorage.getItem("userName") ?? "",
@@ -35,9 +35,12 @@ export function getStoredUser(): User | null {
 export function storeUser(user: User, remember: boolean): void {
   setToken(user.token)
   if (remember) {
-    for (const key of USER_KEYS) {
-      localStorage.setItem(key, user[key])
-    }
+    localStorage.setItem("id", String(user.id))
+    localStorage.setItem("name", user.name)
+    localStorage.setItem("surname", user.surname)
+    localStorage.setItem("userName", user.userName)
+    localStorage.setItem("role", user.role)
+    localStorage.setItem("area", user.area)
   }
 }
 
@@ -51,27 +54,3 @@ export function clearAuth(): void {
 export function isAdmin(user: User | null): boolean {
   return user?.role === "ADMIN"
 }
-
-// ── Mock users (eliminar cuando conectes el backend) ────────
-export const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: "1",
-    name: "Admin",
-    surname: "Sistema",
-    userName: "admin",
-    password: "admin123",
-    role: "ADMIN",
-    area: "Sistemas",
-    token: "mock-jwt-token-admin-001",
-  },
-  {
-    id: "2",
-    name: "Juan",
-    surname: "Perez",
-    userName: "jperez",
-    password: "user123",
-    role: "USER",
-    area: "Sistemas",
-    token: "mock-jwt-token-user-002",
-  },
-]

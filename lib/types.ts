@@ -1,6 +1,6 @@
 // ── User & Auth ──────────────────────────────────────────────
 export interface User {
-  id: string
+  id: number
   name: string
   surname: string
   userName: string
@@ -17,16 +17,16 @@ export interface LoginCredentials {
 
 // ── Tareas Recurrentes (templates del usuario) ──────────────
 export interface RecurringTask {
-  id: string
-  userId: string
+  id: number
+  userId: number
   title: string
   description: string
 }
 
 // ── Tarea del dia (instancia activada) ──────────────────────
 export interface DailyTask {
-  id: string
-  userId: string
+  id: number
+  userId: number
   userName: string
   date: string
   type: "recurrente" | "reclamo" | "trabajo"
@@ -37,8 +37,8 @@ export interface DailyTask {
 
 // ── Reclamo / Ticket ────────────────────────────────────────
 export interface Claim {
-  id: string
-  userId: string
+  id: number
+  userId: number
   userName: string
   date: string
   title: string
@@ -52,8 +52,8 @@ export interface Claim {
 
 // ── Trabajo realizado (sin reclamo) ─────────────────────────
 export interface CompletedWork {
-  id: string
-  userId: string
+  id: number
+  userId: number
   userName: string
   date: string
   title: string
@@ -87,7 +87,7 @@ export interface CompletedWorkFormValues {
 export type ReportPeriod = "today" | "week" | "month"
 
 export interface ReportEntry {
-  id: string
+  id: number
   date: string
   userName: string
   type: "recurrente" | "reclamo" | "trabajo"

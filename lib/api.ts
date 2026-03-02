@@ -33,7 +33,7 @@ async function authFetch<T>(
 }
 
 // ── Tareas Recurrentes ──────────────────────────────────────
-export async function getRecurringTasks(userId: string): Promise<RecurringTask[]> {
+export async function getRecurringTasks(userId: number): Promise<RecurringTask[]> {
   try {
     return await authFetch<RecurringTask[]>(`/recurring-tasks/${userId}`)
   } catch {
@@ -42,7 +42,7 @@ export async function getRecurringTasks(userId: string): Promise<RecurringTask[]
 }
 
 export async function createRecurringTask(
-  userId: string,
+  userId: number,
   data: RecurringTaskFormValues
 ): Promise<RecurringTask | null> {
   try {
@@ -55,7 +55,7 @@ export async function createRecurringTask(
   }
 }
 
-export async function deleteRecurringTask(id: string): Promise<boolean> {
+export async function deleteRecurringTask(id: number): Promise<boolean> {
   try {
     await authFetch(`/recurring-tasks/${id}`, { method: "DELETE" })
     return true
@@ -65,7 +65,7 @@ export async function deleteRecurringTask(id: string): Promise<boolean> {
 }
 
 // ── Tareas del dia ──────────────────────────────────────────
-export async function getDailyTasks(userId: string, date: string): Promise<DailyTask[]> {
+export async function getDailyTasks(userId: number, date: string): Promise<DailyTask[]> {
   try {
     return await authFetch<DailyTask[]>(`/daily-tasks/${userId}?date=${date}`)
   } catch {
@@ -85,7 +85,7 @@ export async function addDailyTask(data: Omit<DailyTask, "id">): Promise<DailyTa
 }
 
 // ── Reclamos ────────────────────────────────────────────────
-export async function getClaims(userId: string, date?: string): Promise<Claim[]> {
+export async function getClaims(userId: number, date?: string): Promise<Claim[]> {
   try {
     const query = date ? `?date=${date}` : ""
     return await authFetch<Claim[]>(`/claims/${userId}${query}`)
@@ -95,7 +95,7 @@ export async function getClaims(userId: string, date?: string): Promise<Claim[]>
 }
 
 export async function createClaim(
-  userId: string,
+  userId: number,
   userName: string,
   data: ClaimFormValues
 ): Promise<Claim | null> {
@@ -110,7 +110,7 @@ export async function createClaim(
 }
 
 // ── Trabajos Realizados ─────────────────────────────────────
-export async function getCompletedWorks(userId: string, date?: string): Promise<CompletedWork[]> {
+export async function getCompletedWorks(userId: number, date?: string): Promise<CompletedWork[]> {
   try {
     const query = date ? `?date=${date}` : ""
     return await authFetch<CompletedWork[]>(`/completed-works/${userId}${query}`)
@@ -120,7 +120,7 @@ export async function getCompletedWorks(userId: string, date?: string): Promise<
 }
 
 export async function createCompletedWork(
-  userId: string,
+  userId: number,
   userName: string,
   data: CompletedWorkFormValues
 ): Promise<CompletedWork | null> {
@@ -140,5 +140,28 @@ export async function getReport(period: ReportPeriod): Promise<ReportEntry[]> {
     return await authFetch<ReportEntry[]>(`/reports?period=${period}`)
   } catch {
     return []
+  }
+}
+
+// ── Imagenes ────────────────────────────────────────────────
+export async function uploadImage(file: File): Promise<string | null> {
+  try {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append("image", file)
+
+    const res = await fetch(`${API_URL}/images/upload`, {
+      method: "POST",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    })
+
+    if (!res.ok) throw new Error("Upload failed")
+    const data = await res.json()
+    return data.url ?? null
+  } catch {
+    return null
   }
 }

@@ -14,17 +14,17 @@ export function RecurringTaskList() {
     isRecurringActivatedToday,
   } = useData()
 
-  function handleActivate(task: (typeof recurringTasks)[number]) {
+  async function handleActivate(task: (typeof recurringTasks)[number]) {
     if (isRecurringActivatedToday(task.id)) {
       toast.info("Esta tarea ya fue agregada hoy")
       return
     }
-    activateRecurringTask(task)
+    await activateRecurringTask(task)
     toast.success(`"${task.title}" agregada a las tareas del dia`)
   }
 
-  function handleDelete(id: string) {
-    removeRecurringTask(id)
+  async function handleDelete(id: number) {
+    await removeRecurringTask(id)
     toast.success("Tarea recurrente eliminada")
   }
 
