@@ -18,7 +18,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/")
+      router.replace("/login")
     }
   }, [user, loading, router])
 

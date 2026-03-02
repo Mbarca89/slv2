@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     clearAuth()
     setUser(null)
+    window.location.href = "/login"
   }, [])
 
   return (
