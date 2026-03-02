@@ -1,0 +1,198 @@
+"use client"
+
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/auth-context"
+import { useData } from "@/lib/data-context"
+import { isAdmin } from "@/lib/auth"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart3, RefreshCw, AlertTriangle, Wrench } from "lucide-react"
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns"
+import { es } from "date-fns/locale"
+import type { ReportPeriod, DailyTask } from "@/lib/types"
+
+const TYPE_CONFIG = {
+  recurrente: {
+    label: "Recurrente",
+    className: "bg-chart-1/15 text-chart-1 border-chart-1/30",
+    icon: RefreshCw,
+  },
+  reclamo: {
+    label: "Reclamo",
+    className: "bg-destructive/15 text-destructive border-destructive/30",
+    icon: AlertTriangle,
+  },
+  trabajo: {
+    label: "Trabajo",
+    className: "bg-chart-2/15 text-chart-2 border-chart-2/30",
+    icon: Wrench,
+  },
+} as const
+
+export function ReportsView() {
+  const { user } = useAuth()
+  const { dailyTasks, claims, completedWorks } = useData()
+  const router = useRouter()
+  const [period, setPeriod] = useState<ReportPeriod>("today")
+
+  // Redirect non-admin users
+  if (!isAdmin(user)) {
+    router.replace("/dashboard")
+    return null
+  }
+
+  const now = new Date()
+
+  const filteredTasks = useMemo(() => {
+    // Combine all tasks into a unified list for the report
+    const allTasks: DailyTask[] = [...dailyTasks]
+
+    // Filter by period
+    return allTasks.filter((task) => {
+      const taskDate = parseISO(task.date)
+      switch (period) {
+        case "today":
+          return format(taskDate, "yyyy-MM-dd") === format(now, "yyyy-MM-dd")
+        case "week": {
+          const weekStart = startOfWeek(now, { weekStartsOn: 1 })
+          const weekEnd = endOfWeek(now, { weekStartsOn: 1 })
+          return isWithinInterval(taskDate, { start: weekStart, end: weekEnd })
+        }
+        case "month": {
+          const monthStart = startOfMonth(now)
+          const monthEnd = endOfMonth(now)
+          return isWithinInterval(taskDate, { start: monthStart, end: monthEnd })
+        }
+        default:
+          return true
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailyTasks, claims, completedWorks, period])
+
+  const stats = {
+    total: filteredTasks.length,
+    recurrente: filteredTasks.filter((t) => t.type === "recurrente").length,
+    reclamo: filteredTasks.filter((t) => t.type === "reclamo").length,
+    trabajo: filteredTasks.filter((t) => t.type === "trabajo").length,
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+          Informes
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Vista general de todas las tareas registradas por el equipo.
+        </p>
+      </div>
+
+      {/* Period selector */}
+      <Tabs value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
+        <TabsList>
+          <TabsTrigger value="today">Hoy</TabsTrigger>
+          <TabsTrigger value="week">Esta semana</TabsTrigger>
+          <TabsTrigger value="month">Este mes</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Stats row */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card className="border-border/50">
+          <CardContent className="flex items-center gap-3 p-4">
+            <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="text-xl font-semibold text-card-foreground">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </CardContent>
+        </Card>
+        {(["recurrente", "reclamo", "trabajo"] as const).map((type) => {
+          const config = TYPE_CONFIG[type]
+          return (
+            <Card key={type} className="border-border/50">
+              <CardContent className="flex items-center gap-3 p-4">
+                <config.icon className={`h-5 w-5 ${
+                  type === "recurrente" ? "text-chart-1" :
+                  type === "reclamo" ? "text-destructive" :
+                  "text-chart-2"
+                }`} />
+                <div>
+                  <p className="text-xl font-semibold text-card-foreground">{stats[type]}</p>
+                  <p className="text-xs text-muted-foreground">{config.label}s</p>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Table */}
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base text-card-foreground">Detalle de tareas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredTasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <BarChart3 className="h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm text-muted-foreground">
+                No hay tareas para el periodo seleccionado
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Usuario</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Titulo</TableHead>
+                  <TableHead>Area</TableHead>
+                  <TableHead className="hidden md:table-cell">Descripcion</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTasks.map((task) => {
+                  const config = TYPE_CONFIG[task.type]
+                  return (
+                    <TableRow key={task.id}>
+                      <TableCell className="text-muted-foreground">
+                        {format(parseISO(task.date), "dd/MM", { locale: es })}
+                      </TableCell>
+                      <TableCell>{task.userName}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${config.className}`}
+                        >
+                          {config.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell className="text-muted-foreground">{task.area ?? "-"}</TableCell>
+                      <TableCell className="hidden max-w-[200px] truncate md:table-cell text-muted-foreground">
+                        {task.description}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
