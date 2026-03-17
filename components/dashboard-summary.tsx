@@ -26,12 +26,35 @@ const TYPE_CONFIG = {
 } as const
 
 export function DashboardSummary() {
-  const { dailyTasks, todayStr } = useData()
+  const { dailyTasks, claims, completedWorks, todayStr } = useData()
 
-  const todayTasks = dailyTasks.filter((t) => t.date === todayStr)
-  const recurrentCount = todayTasks.filter((t) => t.type === "recurrente").length
-  const claimCount = todayTasks.filter((t) => t.type === "reclamo").length
-  const workCount = todayTasks.filter((t) => t.type === "trabajo").length
+  const isToday = (value: string) => value === todayStr || value.startsWith(`${todayStr}T`)
+
+  const recurrentTasks = dailyTasks.filter((t) => t.type === "recurrente" && isToday(t.date))
+  const claimTasks = claims
+    .filter((claim) => isToday(claim.date))
+    .map((claim) => ({
+      id: claim.id,
+      type: "reclamo" as const,
+      title: claim.title,
+      description: claim.description,
+      area: claim.area,
+    }))
+  const workTasks = completedWorks
+    .filter((work) => isToday(work.date))
+    .map((work) => ({
+      id: work.id,
+      type: "trabajo" as const,
+      title: work.title,
+      description: work.description,
+      area: work.area,
+    }))
+
+  const todayTasks = [...recurrentTasks, ...claimTasks, ...workTasks]
+
+  const recurrentCount = recurrentTasks.length
+  const claimCount = claimTasks.length
+  const workCount = workTasks.length
 
   const formattedDate = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })
 
@@ -112,7 +135,7 @@ export function DashboardSummary() {
                 const config = TYPE_CONFIG[task.type]
                 return (
                   <div
-                    key={task.id}
+                    key={`${task.type}-${task.id}`}
                     className="flex items-start gap-3 rounded-lg border border-border/50 p-3 transition-colors hover:bg-muted/50"
                   >
                     <config.icon className={`mt-0.5 h-4 w-4 shrink-0 ${
