@@ -109,6 +109,20 @@ export async function createClaim(
   }
 }
 
+export async function updateClaim(
+  id: number,
+  data: Partial<ClaimFormValues>
+): Promise<Claim | null> {
+  try {
+    return await authFetch<Claim>(`/claims/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  } catch {
+    return null
+  }
+}
+
 // ── Trabajos Realizados ─────────────────────────────────────
 export async function getCompletedWorks(userId: number, date?: string): Promise<CompletedWork[]> {
   try {
@@ -128,6 +142,20 @@ export async function createCompletedWork(
     return await authFetch<CompletedWork>("/completed-works", {
       method: "POST",
       body: JSON.stringify({ ...data, userId, userName }),
+    })
+  } catch {
+    return null
+  }
+}
+
+export async function updateCompletedWork(
+  id: number,
+  data: Partial<CompletedWorkFormValues>
+): Promise<CompletedWork | null> {
+  try {
+    return await authFetch<CompletedWork>(`/completed-works/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
     })
   } catch {
     return null
