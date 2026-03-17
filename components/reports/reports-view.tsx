@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart3, RefreshCw, AlertTriangle, Wrench } from "lucide-react"
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
-import type { ReportPeriod, DailyTask } from "@/lib/types"
+import type { ReportPeriod } from "@/lib/types"
 
 const TYPE_CONFIG = {
   recurrente: {
@@ -39,6 +39,16 @@ const TYPE_CONFIG = {
   },
 } as const
 
+type ReportTask = {
+  id: number
+  type: "recurrente" | "reclamo" | "trabajo"
+  date: string
+  userName: string
+  title: string
+  area?: string
+  description: string
+}
+
 export function ReportsView() {
   const { user } = useAuth()
   const { dailyTasks, claims, completedWorks } = useData()
@@ -51,13 +61,30 @@ export function ReportsView() {
     return null
   }
 
-  const now = new Date()
-
   const filteredTasks = useMemo(() => {
-    // Combine all tasks into a unified list for the report
-    const allTasks: DailyTask[] = [...dailyTasks]
+    const now = new Date()
+    const allTasks: ReportTask[] = [
+      ...dailyTasks.filter((task) => task.type === "recurrente"),
+      ...claims.map((claim) => ({
+        id: claim.id,
+        type: "reclamo" as const,
+        date: claim.date,
+        userName: claim.userName,
+        title: claim.title,
+        area: claim.area,
+        description: claim.description,
+      })),
+      ...completedWorks.map((work) => ({
+        id: work.id,
+        type: "trabajo" as const,
+        date: work.date,
+        userName: work.userName,
+        title: work.title,
+        area: work.area,
+        description: work.description,
+      })),
+    ]
 
-    // Filter by period
     return allTasks.filter((task) => {
       const taskDate = parseISO(task.date)
       switch (period) {
@@ -77,7 +104,6 @@ export function ReportsView() {
           return true
       }
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dailyTasks, claims, completedWorks, period])
 
   const stats = {
@@ -167,7 +193,7 @@ export function ReportsView() {
                 {filteredTasks.map((task) => {
                   const config = TYPE_CONFIG[task.type]
                   return (
-                    <TableRow key={task.id}>
+                    <TableRow key={`${task.type}-${task.id}`}>
                       <TableCell className="text-muted-foreground">
                         {format(parseISO(task.date), "dd/MM", { locale: es })}
                       </TableCell>
