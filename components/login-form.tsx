@@ -54,15 +54,14 @@ export function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <Monitor className="h-7 w-7 text-primary-foreground" />
+          <div className="flex items-center justify-center">
+            <img src="/images/sl+logo.png" alt="" />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              IT Task Manager
+              Sistema de registro de tareas
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sistema de registro de tareas
             </p>
           </div>
         </div>
@@ -143,10 +142,6 @@ export function LoginForm() {
             </form>
           </CardContent>
         </Card>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Mock: admin / admin123 | jperez / user123
-        </p>
       </div>
     </div>
   )
