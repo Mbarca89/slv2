@@ -10,6 +10,7 @@ import type {
   DailyTask,
   ReportEntry,
   ReportPeriod,
+  StatisticsSummary,
 } from "@/lib/types"
 
 // ── Fetch wrapper with auth ─────────────────────────────────
@@ -168,6 +169,18 @@ export async function getReport(period: ReportPeriod): Promise<ReportEntry[]> {
     return await authFetch<ReportEntry[]>(`/reports?period=${period}`)
   } catch {
     return []
+  }
+}
+
+
+export async function getStatisticsSummary(
+  startDate: string,
+  endDate: string
+): Promise<StatisticsSummary | null> {
+  try {
+    return await authFetch<StatisticsSummary>(`/statistics/summary?startDate=${startDate}&endDate=${endDate}`)
+  } catch {
+    return null
   }
 }
 

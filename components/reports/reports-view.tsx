@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { useData } from "@/lib/data-context"
 import { isAdmin } from "@/lib/auth"
+import * as api from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,7 +36,7 @@ import {
   parseISO,
 } from "date-fns"
 import { es } from "date-fns/locale"
-import type { ReportPeriod } from "@/lib/types"
+import type { CountEntry, ReportPeriod, StatisticsSummary } from "@/lib/types"
 
 const TYPE_CONFIG = {
   recurrente: {
@@ -65,16 +66,98 @@ type ReportTask = {
   description: string
 }
 
+function getDateRange(period: ReportPeriod): { startDate: string; endDate: string } {
+  const now = new Date()
+
+  switch (period) {
+    case "today": {
+      const day = format(now, "yyyy-MM-dd")
+      return { startDate: day, endDate: day }
+    }
+    case "week":
+      return {
+        startDate: format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+        endDate: format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      }
+    case "month":
+      return {
+        startDate: format(startOfMonth(now), "yyyy-MM-dd"),
+        endDate: format(endOfMonth(now), "yyyy-MM-dd"),
+      }
+  }
+}
+
+function normalizeEntry(entry: CountEntry) {
+  const label = entry.label ?? entry.name ?? entry.key ?? "Sin etiqueta"
+  const count = entry.count ?? entry.total ?? entry.value ?? 0
+  return { label, count }
+}
+
+function StatsList({ title, entries }: { title: string; entries: CountEntry[] }) {
+  return (
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base text-card-foreground">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin datos</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {entries.map((entry, index) => {
+              const item = normalizeEntry(entry)
+              return (
+                <div
+                  key={`${item.label}-${index}`}
+                  className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2"
+                >
+                  <span className="text-sm text-card-foreground truncate pr-3">{item.label}</span>
+                  <Badge variant="secondary" className="text-sm">
+                    {item.count}
+                  </Badge>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 export function ReportsView() {
   const { user } = useAuth()
   const { dailyTasks, claims, completedWorks } = useData()
   const router = useRouter()
   const [period, setPeriod] = useState<ReportPeriod>("today")
+  const [statistics, setStatistics] = useState<StatisticsSummary | null>(null)
+  const [loadingStatistics, setLoadingStatistics] = useState(false)
 
   if (!isAdmin(user)) {
     router.replace("/dashboard")
     return null
   }
+
+  const { startDate, endDate } = useMemo(() => getDateRange(period), [period])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadStatistics = async () => {
+      setLoadingStatistics(true)
+      const data = await api.getStatisticsSummary(startDate, endDate)
+      if (mounted) {
+        setStatistics(data)
+        setLoadingStatistics(false)
+      }
+    }
+
+    loadStatistics()
+
+    return () => {
+      mounted = false
+    }
+  }, [startDate, endDate])
 
   const filteredTasks = useMemo(() => {
     const now = new Date()
@@ -176,6 +259,58 @@ export function ReportsView() {
           )
         })}
       </div>
+
+      <Card className="border-border/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg text-card-foreground">
+            Estadisticas del periodo ({startDate} a {endDate})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loadingStatistics ? (
+            <p className="text-base text-muted-foreground">Cargando estadisticas...</p>
+          ) : !statistics ? (
+            <p className="text-base text-muted-foreground">No se pudieron cargar las estadisticas.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Total items</p>
+                    <p className="text-2xl font-semibold">{statistics.totalItems ?? 0}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Total reclamos</p>
+                    <p className="text-2xl font-semibold">{statistics.totalClaims ?? 0}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Total trabajos</p>
+                    <p className="text-2xl font-semibold">{statistics.totalCompletedWorks ?? 0}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-muted-foreground">Total recurrentes</p>
+                    <p className="text-2xl font-semibold">{statistics.totalRecurringTasks ?? 0}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <StatsList title="Items por tipo" entries={statistics.itemsByRecordType ?? []} />
+                <StatsList title="Items por area" entries={statistics.itemsByArea ?? []} />
+                <StatsList title="Reclamos por tipo de problema" entries={statistics.claimsByProblemType ?? []} />
+                <StatsList title="Items por usuario" entries={statistics.itemsByUser ?? []} />
+                <StatsList title="Reclamos por reclamante" entries={statistics.claimsByClaimant ?? []} />
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50">
         <CardHeader className="pb-3">
