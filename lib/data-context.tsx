@@ -38,11 +38,13 @@ interface DataContextValue {
   // Reclamos
   claims: Claim[]
   addClaim: (data: ClaimFormValues) => Promise<void>
+  updateClaim: (id: number, data: ClaimFormValues) => Promise<boolean>
   loadingClaims: boolean
 
   // Trabajos realizados
   completedWorks: CompletedWork[]
   addCompletedWork: (data: CompletedWorkFormValues) => Promise<void>
+  updateCompletedWork: (id: number, data: CompletedWorkFormValues) => Promise<boolean>
   loadingWorks: boolean
 
   // Helpers
@@ -176,13 +178,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const created = await api.createClaim(user.id, userName, data)
       if (created) {
         setClaims((prev) => [...prev, created])
-        // Refetch daily tasks since backend may have added a daily task entry
         await fetchDaily()
       } else {
         toast.error("Error al registrar el reclamo")
       }
     },
     [user, fetchDaily]
+  )
+
+  const updateClaim = useCallback(
+    async (id: number, data: ClaimFormValues) => {
+      const updated = await api.updateClaim(id, data)
+      if (!updated) {
+        toast.error("Error al editar el reclamo")
+        return false
+      }
+
+      setClaims((prev) => prev.map((claim) => (claim.id === id ? updated : claim)))
+      await fetchDaily()
+      return true
+    },
+    [fetchDaily]
   )
 
   // ── Trabajos realizados ─────────────────────────────────
@@ -193,13 +209,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const created = await api.createCompletedWork(user.id, userName, data)
       if (created) {
         setCompletedWorks((prev) => [...prev, created])
-        // Refetch daily tasks since backend may have added a daily task entry
         await fetchDaily()
       } else {
         toast.error("Error al registrar el trabajo")
       }
     },
     [user, fetchDaily]
+  )
+
+  const updateCompletedWork = useCallback(
+    async (id: number, data: CompletedWorkFormValues) => {
+      const updated = await api.updateCompletedWork(id, data)
+      if (!updated) {
+        toast.error("Error al editar el trabajo")
+        return false
+      }
+
+      setCompletedWorks((prev) => prev.map((work) => (work.id === id ? updated : work)))
+      await fetchDaily()
+      return true
+    },
+    [fetchDaily]
   )
 
   return (
@@ -215,9 +245,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         loadingDaily,
         claims,
         addClaim,
+        updateClaim,
         loadingClaims,
         completedWorks,
         addCompletedWork,
+        updateCompletedWork,
         loadingWorks,
         todayStr,
         refreshAll,
