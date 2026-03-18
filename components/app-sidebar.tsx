@@ -67,11 +67,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-            <Monitor className="h-4 w-4 text-primary-foreground" />
-          </div>
           <span className="text-sm font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-            IT Task Manager
+            Sistema de registro de tareas
           </span>
         </Link>
       </SidebarHeader>
