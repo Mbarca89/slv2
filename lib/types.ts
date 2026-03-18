@@ -95,3 +95,26 @@ export interface ReportEntry {
   area: string
   description: string
 }
+
+export interface CountEntry {
+  key?: string
+  label?: string
+  name?: string
+  count?: number
+  total?: number
+  value?: number
+}
+
+export interface StatisticsSummary {
+  startDate: string
+  endDate: string
+  itemsByRecordType: CountEntry[]
+  itemsByArea: CountEntry[]
+  claimsByProblemType: CountEntry[]
+  itemsByUser: CountEntry[]
+  claimsByClaimant: CountEntry[]
+  totalItems: number
+  totalClaims: number
+  totalCompletedWorks: number
+  totalRecurringTasks: number
+}

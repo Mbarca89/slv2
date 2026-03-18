@@ -10,6 +10,7 @@ import type {
   DailyTask,
   ReportEntry,
   ReportPeriod,
+  StatisticsSummary,
 } from "@/lib/types"
 
 // ── Fetch wrapper with auth ─────────────────────────────────
@@ -109,6 +110,20 @@ export async function createClaim(
   }
 }
 
+export async function updateClaim(
+  id: number,
+  data: Partial<ClaimFormValues>
+): Promise<Claim | null> {
+  try {
+    return await authFetch<Claim>(`/claims/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  } catch {
+    return null
+  }
+}
+
 // ── Trabajos Realizados ─────────────────────────────────────
 export async function getCompletedWorks(userId: number, date?: string): Promise<CompletedWork[]> {
   try {
@@ -134,12 +149,38 @@ export async function createCompletedWork(
   }
 }
 
+export async function updateCompletedWork(
+  id: number,
+  data: Partial<CompletedWorkFormValues>
+): Promise<CompletedWork | null> {
+  try {
+    return await authFetch<CompletedWork>(`/completed-works/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    })
+  } catch {
+    return null
+  }
+}
+
 // ── Informes (admin) ────────────────────────────────────────
 export async function getReport(period: ReportPeriod): Promise<ReportEntry[]> {
   try {
     return await authFetch<ReportEntry[]>(`/reports?period=${period}`)
   } catch {
     return []
+  }
+}
+
+
+export async function getStatisticsSummary(
+  startDate: string,
+  endDate: string
+): Promise<StatisticsSummary | null> {
+  try {
+    return await authFetch<StatisticsSummary>(`/statistics/summary?startDate=${startDate}&endDate=${endDate}`)
+  } catch {
+    return null
   }
 }
 
