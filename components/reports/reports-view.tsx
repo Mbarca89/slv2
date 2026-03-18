@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { BarChart3, RefreshCw, AlertTriangle, Wrench, Eye } from "lucide-react"
+import { BarChart3, RefreshCw, AlertTriangle, Wrench, Eye, FileDown } from "lucide-react"
 import {
   format,
   startOfWeek,
@@ -95,7 +95,7 @@ function normalizeEntry(entry: CountEntry) {
 
 function StatsList({ title, entries }: { title: string; entries: CountEntry[] }) {
   return (
-    <Card className="border-border/50">
+    <Card className="border-border/50 pdf-avoid-break">
       <CardHeader className="pb-3">
         <CardTitle className="text-base text-card-foreground">{title}</CardTitle>
       </CardHeader>
@@ -211,199 +211,274 @@ export function ReportsView() {
     trabajo: filteredTasks.filter((t) => t.type === "trabajo").length,
   }
 
+  const handleExportPdf = () => {
+    window.print()
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          Informes
-        </h1>
-        <p className="mt-1 text-base text-muted-foreground">
-          Vista general de todas las tareas registradas por el equipo.
-        </p>
-      </div>
+    <>
+      <div id="reports-pdf" className="reports-pdf flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            Informes
+          </h1>
+          <p className="mt-1 text-base text-muted-foreground">
+            Vista general de todas las tareas registradas por el equipo.
+          </p>
+        </div>
 
-      <Tabs value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-        <TabsList>
-          <TabsTrigger value="today" className="text-base">Hoy</TabsTrigger>
-          <TabsTrigger value="week" className="text-base">Esta semana</TabsTrigger>
-          <TabsTrigger value="month" className="text-base">Este mes</TabsTrigger>
-        </TabsList>
-      </Tabs>
+        <div className="no-print flex flex-wrap items-center gap-3">
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
+            <TabsList>
+              <TabsTrigger value="today" className="text-base">Hoy</TabsTrigger>
+              <TabsTrigger value="week" className="text-base">Esta semana</TabsTrigger>
+              <TabsTrigger value="month" className="text-base">Este mes</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        <Card className="border-border/50">
-          <CardContent className="flex items-center gap-3 p-4">
-            <BarChart3 className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-semibold text-card-foreground">{stats.total}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
-            </div>
+          <Button onClick={handleExportPdf} className="ml-auto">
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar PDF
+          </Button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Card className="border-border/50 pdf-avoid-break">
+            <CardContent className="flex items-center gap-3 p-4">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-2xl font-semibold text-card-foreground">{stats.total}</p>
+                <p className="text-sm text-muted-foreground">Total</p>
+              </div>
+            </CardContent>
+          </Card>
+          {(["recurrente", "reclamo", "trabajo"] as const).map((type) => {
+            const config = TYPE_CONFIG[type]
+            return (
+              <Card key={type} className="border-border/50 pdf-avoid-break">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <config.icon className={`h-5 w-5 ${
+                    type === "recurrente" ? "text-chart-1" :
+                    type === "reclamo" ? "text-destructive" :
+                    "text-chart-2"
+                  }`} />
+                  <div>
+                    <p className="text-2xl font-semibold text-card-foreground">{stats[type]}</p>
+                    <p className="text-sm text-muted-foreground">{config.label}s</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        <Card className="border-border/50 pdf-avoid-break">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg text-card-foreground">
+              Estadisticas del periodo ({startDate} a {endDate})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingStatistics ? (
+              <p className="text-base text-muted-foreground">Cargando estadisticas...</p>
+            ) : !statistics ? (
+              <p className="text-base text-muted-foreground">No se pudieron cargar las estadisticas.</p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Card className="pdf-avoid-break">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground">Total items</p>
+                      <p className="text-2xl font-semibold">{statistics.totalItems ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="pdf-avoid-break">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground">Total reclamos</p>
+                      <p className="text-2xl font-semibold">{statistics.totalClaims ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="pdf-avoid-break">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground">Total trabajos</p>
+                      <p className="text-2xl font-semibold">{statistics.totalCompletedWorks ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="pdf-avoid-break">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground">Total recurrentes</p>
+                      <p className="text-2xl font-semibold">{statistics.totalRecurringTasks ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  <StatsList title="Items por tipo" entries={statistics.itemsByRecordType ?? []} />
+                  <StatsList title="Items por area" entries={statistics.itemsByArea ?? []} />
+                  <StatsList title="Reclamos por tipo de problema" entries={statistics.claimsByProblemType ?? []} />
+                  <StatsList title="Items por usuario" entries={statistics.itemsByUser ?? []} />
+                  <StatsList title="Reclamos por reclamante" entries={statistics.claimsByClaimant ?? []} />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-        {(["recurrente", "reclamo", "trabajo"] as const).map((type) => {
-          const config = TYPE_CONFIG[type]
-          return (
-            <Card key={type} className="border-border/50">
-              <CardContent className="flex items-center gap-3 p-4">
-                <config.icon className={`h-5 w-5 ${
-                  type === "recurrente" ? "text-chart-1" :
-                  type === "reclamo" ? "text-destructive" :
-                  "text-chart-2"
-                }`} />
-                <div>
-                  <p className="text-2xl font-semibold text-card-foreground">{stats[type]}</p>
-                  <p className="text-sm text-muted-foreground">{config.label}s</p>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg text-card-foreground">Detalle de tareas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {filteredTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <BarChart3 className="h-10 w-10 text-muted-foreground/40" />
+                <p className="mt-3 text-base text-muted-foreground">
+                  No hay tareas para el periodo seleccionado
+                </p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-base">Fecha</TableHead>
+                    <TableHead className="text-base">Usuario</TableHead>
+                    <TableHead className="text-base">Tipo</TableHead>
+                    <TableHead className="text-base">Titulo</TableHead>
+                    <TableHead className="text-base">Area</TableHead>
+                    <TableHead className="text-base">Descripcion</TableHead>
+                    <TableHead className="text-base text-right pdf-detail-col no-print">Detalle</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTasks.map((task) => {
+                    const config = TYPE_CONFIG[task.type]
+                    return (
+                      <TableRow key={`${task.type}-${task.id}`}>
+                        <TableCell className="text-muted-foreground text-base">
+                          {format(parseISO(task.date), "dd/MM", { locale: es })}
+                        </TableCell>
+                        <TableCell className="text-base">{task.userName}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${config.className}`}
+                          >
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-base">{task.title}</TableCell>
+                        <TableCell className="text-muted-foreground text-base">{task.area ?? "-"}</TableCell>
+                        <TableCell className="text-muted-foreground text-base pdf-description">
+                          {task.description}
+                        </TableCell>
+                        <TableCell className="text-right pdf-detail-col no-print">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Eye className="h-4 w-4" />
+                                <span className="sr-only">Ver detalle</span>
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-lg">
+                              <DialogHeader>
+                                <DialogTitle className="text-xl">{task.title}</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-3 text-base">
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                                  <p>{config.label}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Fecha</p>
+                                  <p>{format(parseISO(task.date), "dd/MM/yyyy HH:mm", { locale: es })}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Usuario</p>
+                                  <p>{task.userName}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Area</p>
+                                  <p>{task.area ?? "-"}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-muted-foreground">Descripcion</p>
+                                  <p className="whitespace-pre-wrap">{task.description || "-"}</p>
+                                </div>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg text-card-foreground">
-            Estadisticas del periodo ({startDate} a {endDate})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingStatistics ? (
-            <p className="text-base text-muted-foreground">Cargando estadisticas...</p>
-          ) : !statistics ? (
-            <p className="text-base text-muted-foreground">No se pudieron cargar las estadisticas.</p>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Total items</p>
-                    <p className="text-2xl font-semibold">{statistics.totalItems ?? 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Total reclamos</p>
-                    <p className="text-2xl font-semibold">{statistics.totalClaims ?? 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Total trabajos</p>
-                    <p className="text-2xl font-semibold">{statistics.totalCompletedWorks ?? 0}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Total recurrentes</p>
-                    <p className="text-2xl font-semibold">{statistics.totalRecurringTasks ?? 0}</p>
-                  </CardContent>
-                </Card>
-              </div>
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <StatsList title="Items por tipo" entries={statistics.itemsByRecordType ?? []} />
-                <StatsList title="Items por area" entries={statistics.itemsByArea ?? []} />
-                <StatsList title="Reclamos por tipo de problema" entries={statistics.claimsByProblemType ?? []} />
-                <StatsList title="Items por usuario" entries={statistics.itemsByUser ?? []} />
-                <StatsList title="Reclamos por reclamante" entries={statistics.claimsByClaimant ?? []} />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          #reports-pdf,
+          #reports-pdf * {
+            visibility: visible;
+          }
 
-      <Card className="border-border/50">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg text-card-foreground">Detalle de tareas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <BarChart3 className="h-10 w-10 text-muted-foreground/40" />
-              <p className="mt-3 text-base text-muted-foreground">
-                No hay tareas para el periodo seleccionado
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-base">Fecha</TableHead>
-                  <TableHead className="text-base">Usuario</TableHead>
-                  <TableHead className="text-base">Tipo</TableHead>
-                  <TableHead className="text-base">Titulo</TableHead>
-                  <TableHead className="text-base">Area</TableHead>
-                  <TableHead className="hidden md:table-cell text-base">Descripcion</TableHead>
-                  <TableHead className="text-base text-right">Detalle</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTasks.map((task) => {
-                  const config = TYPE_CONFIG[task.type]
-                  return (
-                    <TableRow key={`${task.type}-${task.id}`}>
-                      <TableCell className="text-muted-foreground text-base">
-                        {format(parseISO(task.date), "dd/MM", { locale: es })}
-                      </TableCell>
-                      <TableCell className="text-base">{task.userName}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${config.className}`}
-                        >
-                          {config.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium text-base">{task.title}</TableCell>
-                      <TableCell className="text-muted-foreground text-base">{task.area ?? "-"}</TableCell>
-                      <TableCell className="hidden max-w-[200px] truncate md:table-cell text-muted-foreground text-base">
-                        {task.description}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">Ver detalle</span>
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-lg">
-                            <DialogHeader>
-                              <DialogTitle className="text-xl">{task.title}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-3 text-base">
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-                                <p>{config.label}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Fecha</p>
-                                <p>{format(parseISO(task.date), "dd/MM/yyyy HH:mm", { locale: es })}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Usuario</p>
-                                <p>{task.userName}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Area</p>
-                                <p>{task.area ?? "-"}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground">Descripcion</p>
-                                <p className="whitespace-pre-wrap">{task.description || "-"}</p>
-                              </div>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          #reports-pdf {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 16px;
+            background: #fff;
+            color: #000;
+            font-size: 12px;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .pdf-detail-col {
+            display: none !important;
+          }
+
+          .pdf-description {
+            white-space: normal !important;
+            overflow: visible !important;
+            max-width: none !important;
+            line-height: 1.35 !important;
+          }
+
+          .pdf-avoid-break {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 11px !important;
+          }
+
+          th,
+          td {
+            border: 1px solid #d4d4d8 !important;
+            padding: 6px !important;
+            vertical-align: top !important;
+          }
+
+          @page {
+            size: A4;
+            margin: 12mm;
+          }
+        }
+      `}</style>
+    </>
   )
 }
