@@ -184,6 +184,57 @@ export async function getStatisticsSummary(
   }
 }
 
+
+// ── Usuarios (admin) ───────────────────────────────────────
+
+export interface UserPayload {
+  name: string
+  surname: string
+  userName: string
+  password: string
+  area: string
+  role: "ADMIN" | "USER"
+}
+
+async function userMutation(endpoint: string, options: RequestInit): Promise<string> {
+  try {
+    const token = getToken()
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+
+    const message = await res.text()
+    return message || (res.ok ? "Operacion completada" : "Error al procesar la solicitud")
+  } catch {
+    return "Error de conexion con el servidor"
+  }
+}
+
+export async function createUser(data: UserPayload): Promise<string> {
+  return userMutation("/api/v1/users/create", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateUser(id: number, data: UserPayload): Promise<string> {
+  return userMutation(`/api/v1/users/update/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteUser(id: number): Promise<string> {
+  return userMutation(`/api/v1/users/delete/${id}`, {
+    method: "DELETE",
+  })
+}
+
 // ── Imagenes ────────────────────────────────────────────────
 export async function uploadImage(file: File): Promise<string | null> {
   try {
