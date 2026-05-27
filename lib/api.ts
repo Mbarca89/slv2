@@ -207,7 +207,7 @@ export interface ManagedUser {
 async function userMutation(endpoint: string, options: RequestInit): Promise<string> {
   try {
     const token = getToken()
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const res = await fetch(`${API_URL}/api${endpoint}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
