@@ -19,7 +19,7 @@ async function authFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const token = getToken()
-  const res = await fetch(`${API_URL}${endpoint}`, {
+  const res = await fetch(`${API_URL}/api${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -224,28 +224,28 @@ async function userMutation(endpoint: string, options: RequestInit): Promise<str
 }
 
 export async function createUser(data: UserPayload): Promise<string> {
-  return userMutation("/api/v1/users/create", {
+  return userMutation("/v1/users/create", {
     method: "POST",
     body: JSON.stringify(data),
   })
 }
 
 export async function editUser(data: UserPayload): Promise<string> {
-  return userMutation("/api/v1/users/edit", {
+  return userMutation("/v1/users/edit", {
     method: "PUT",
     body: JSON.stringify(data),
   })
 }
 
 export async function deleteUser(name: string): Promise<string> {
-  return userMutation(`/api/v1/users/delete/${encodeURIComponent(name)}`, {
+  return userMutation(`/v1/users/delete/${encodeURIComponent(name)}`, {
     method: "DELETE",
   })
 }
 
 export async function getUsers(): Promise<ManagedUser[]> {
   try {
-    return await authFetch<ManagedUser[]>("/api/v1/users/getUsers")
+    return await authFetch<ManagedUser[]>("/v1/users/getUsers")
   } catch {
     return []
   }
@@ -253,7 +253,7 @@ export async function getUsers(): Promise<ManagedUser[]> {
 
 export async function getUserByName(userName: string): Promise<ManagedUser | null> {
   try {
-    return await authFetch<ManagedUser>(`/api/v1/users/getUserByName/${encodeURIComponent(userName)}`)
+    return await authFetch<ManagedUser>(`/v1/users/getUserByName/${encodeURIComponent(userName)}`)
   } catch {
     return null
   }
