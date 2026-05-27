@@ -24,8 +24,10 @@ export function RecurringTaskList() {
   }
 
   async function handleDelete(id: number) {
-    await removeRecurringTask(id)
-    toast.success("Tarea recurrente eliminada")
+    const deleted = await removeRecurringTask(id)
+    if (deleted) {
+      toast.success("Tarea recurrente eliminada")
+    }
   }
 
   return (

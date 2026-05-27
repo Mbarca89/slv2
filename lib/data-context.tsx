@@ -26,7 +26,7 @@ interface DataContextValue {
   // Tareas recurrentes
   recurringTasks: RecurringTask[]
   addRecurringTask: (data: RecurringTaskFormValues) => Promise<void>
-  removeRecurringTask: (id: number) => Promise<void>
+  removeRecurringTask: (id: number) => Promise<boolean>
   loadingRecurring: boolean
 
   // Tareas del dia
@@ -128,11 +128,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const removeRecurringTask = useCallback(async (id: number) => {
     const success = await api.deleteRecurringTask(id)
     if (success) {
-      setRecurringTasks((prev) => prev.filter((t) => t.id !== id))
+      await fetchRecurring()
+      return true
     } else {
       toast.error("Error al eliminar la tarea recurrente")
+      return false
     }
-  }, [])
+  }, [fetchRecurring])
 
   // ── Activar recurrente como tarea del dia ───────────────
   const activateRecurringTask = useCallback(
