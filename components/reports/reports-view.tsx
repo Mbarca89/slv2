@@ -257,11 +257,10 @@ export function ReportsView() {
             return (
               <Card key={type} className="border-border/50 pdf-avoid-break">
                 <CardContent className="flex items-center gap-3 p-4">
-                  <config.icon className={`h-5 w-5 ${
-                    type === "recurrente" ? "text-chart-1" :
-                    type === "reclamo" ? "text-destructive" :
-                    "text-chart-2"
-                  }`} />
+                  <config.icon className={`h-5 w-5 ${type === "recurrente" ? "text-chart-1" :
+                      type === "reclamo" ? "text-destructive" :
+                        "text-chart-2"
+                    }`} />
                   <div>
                     <p className="text-2xl font-semibold text-card-foreground">{stats[type]}</p>
                     <p className="text-sm text-muted-foreground">{config.label}s</p>
@@ -317,7 +316,6 @@ export function ReportsView() {
                   <StatsList title="Items por area" entries={statistics.itemsByArea ?? []} />
                   <StatsList title="Reclamos por tipo de problema" entries={statistics.claimsByProblemType ?? []} />
                   <StatsList title="Items por usuario" entries={statistics.itemsByUser ?? []} />
-                  <StatsList title="Reclamos por reclamante" entries={statistics.claimsByClaimant ?? []} />
                 </div>
               </div>
             )}
