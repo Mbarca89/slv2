@@ -35,11 +35,12 @@ const TYPE_CONFIG = {
 } as const
 
 type SummaryTask = {
-  id: number
+  id: string | number
   type: "recurrente" | "reclamo" | "trabajo"
   title: string
   description: string
   area?: string
+  userName: string
   date: string
 }
 
@@ -58,6 +59,7 @@ export function DashboardSummary() {
           title: task.title,
           description: task.description,
           area: task.area,
+          userName: task.userName,
           date: task.date,
         })),
     [dailyTasks, todayStr]
@@ -73,6 +75,7 @@ export function DashboardSummary() {
           title: claim.title,
           description: claim.description,
           area: claim.area,
+          userName: claim.userName,
           date: claim.date,
         })),
     [claims, todayStr]
@@ -88,6 +91,7 @@ export function DashboardSummary() {
           title: work.title,
           description: work.description,
           area: work.area,
+          userName: work.userName,
           date: work.date,
         })),
     [completedWorks, todayStr]
@@ -197,6 +201,9 @@ export function DashboardSummary() {
                           {task.description}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-muted-foreground/80">
+                        Responsable: {task.userName}
+                      </p>
                     </div>
                     {task.area && (
                       <span className="shrink-0 text-sm text-muted-foreground">
@@ -230,6 +237,10 @@ export function DashboardSummary() {
                               <p>{task.area}</p>
                             </div>
                           )}
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Responsable</p>
+                            <p>{task.userName}</p>
+                          </div>
                           <div>
                             <p className="text-sm font-medium text-muted-foreground">Descripcion</p>
                             <p className="whitespace-pre-wrap">{task.description || "-"}</p>
