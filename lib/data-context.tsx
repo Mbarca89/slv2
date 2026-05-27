@@ -38,7 +38,7 @@ interface DataContextValue {
   // Reclamos
   claims: Claim[]
   addClaim: (data: ClaimFormValues) => Promise<void>
-  updateClaim: (id: number, data: ClaimFormValues) => Promise<boolean>
+  updateClaim: (id: string | number, data: ClaimFormValues) => Promise<boolean>
   loadingClaims: boolean
 
   // Trabajos realizados
@@ -225,7 +225,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const updateClaim = useCallback(
-    async (id: number, data: ClaimFormValues) => {
+    async (id: string | number, data: ClaimFormValues) => {
       const updated = await api.updateClaim(id, data)
       if (!updated) {
         toast.error("Error al editar el reclamo")

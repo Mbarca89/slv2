@@ -37,7 +37,7 @@ export interface DailyTask {
 
 // ── Reclamo / Ticket ────────────────────────────────────────
 export interface Claim {
-  id: number
+  id: string | number
   userId: number
   userName: string
   date: string
@@ -47,7 +47,7 @@ export interface Claim {
   problemType: string
   description: string
   solution: string
-  images: string[]
+  images: string[] | null
 }
 
 // ── Trabajo realizado (sin reclamo) ─────────────────────────
