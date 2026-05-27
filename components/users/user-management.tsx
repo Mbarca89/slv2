@@ -9,9 +9,14 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { encryptPassword } from "@/lib/crypto"
 
 function buildPayload(values: { name: string; surname: string; userName: string; password: string; role: "ADMIN" | "USER" }): UserPayload {
-  return { ...values, area: "sistemas" }
+  return {
+    ...values,
+    password: values.password ? encryptPassword(values.password) : "",
+    area: "sistemas",
+  }
 }
 
 export function UserManagement() {
