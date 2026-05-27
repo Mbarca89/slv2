@@ -61,6 +61,21 @@ export interface CompletedWork {
   description: string
 }
 
+export interface DashboardRecurringTask {
+  id: number
+  userId: number
+  userName: string
+  title: string
+  description: string
+}
+
+export interface DashboardToday {
+  date: string
+  recurringTasks: DashboardRecurringTask[]
+  claims: Claim[]
+  completedWorks: CompletedWork[]
+}
+
 // ── Forms ───────────────────────────────────────────────────
 export interface RecurringTaskFormValues {
   title: string
