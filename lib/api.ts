@@ -184,6 +184,81 @@ export async function getStatisticsSummary(
   }
 }
 
+
+// ── Usuarios (admin) ───────────────────────────────────────
+
+export interface UserPayload {
+  name: string
+  surname: string
+  userName: string
+  password: string
+  area: string
+  role: "ADMIN" | "USER"
+}
+
+export interface ManagedUser {
+  name: string
+  surname: string
+  userName: string
+  role: "ADMIN" | "USER"
+  area?: string
+}
+
+async function userMutation(endpoint: string, options: RequestInit): Promise<string> {
+  try {
+    const token = getToken()
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+
+    const message = await res.text()
+    return message || (res.ok ? "Operacion completada" : "Error al procesar la solicitud")
+  } catch {
+    return "Error de conexion con el servidor"
+  }
+}
+
+export async function createUser(data: UserPayload): Promise<string> {
+  return userMutation("/api/v1/users/create", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function editUser(data: UserPayload): Promise<string> {
+  return userMutation("/api/v1/users/edit", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteUser(name: string): Promise<string> {
+  return userMutation(`/api/v1/users/delete/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+  })
+}
+
+export async function getUsers(): Promise<ManagedUser[]> {
+  try {
+    return await authFetch<ManagedUser[]>("/api/v1/users/getUsers")
+  } catch {
+    return []
+  }
+}
+
+export async function getUserByName(userName: string): Promise<ManagedUser | null> {
+  try {
+    return await authFetch<ManagedUser>(`/api/v1/users/getUserByName/${encodeURIComponent(userName)}`)
+  } catch {
+    return null
+  }
+}
+
 // ── Imagenes ────────────────────────────────────────────────
 export async function uploadImage(file: File): Promise<string | null> {
   try {
