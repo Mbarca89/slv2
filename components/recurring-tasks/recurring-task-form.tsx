@@ -23,6 +23,7 @@ import { toast } from "sonner"
 const schema = z.object({
   title: z.string().min(1, "El titulo es obligatorio"),
   description: z.string().min(1, "La descripcion es obligatoria"),
+  area: z.string().min(1, "El area es obligatoria"),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -32,7 +33,7 @@ export function RecurringTaskForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", description: "" },
+    defaultValues: { title: "", description: "", area: "Sistemas" },
   })
 
   async function onSubmit(values: FormValues) {
