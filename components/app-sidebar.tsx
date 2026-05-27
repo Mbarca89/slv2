@@ -24,8 +24,8 @@ import {
   AlertTriangle,
   Wrench,
   BarChart3,
+  Users,
   LogOut,
-  Monitor,
 } from "lucide-react"
 
 const NAV_ITEMS = [
@@ -56,6 +56,11 @@ const ADMIN_ITEMS = [
     title: "Informes",
     href: "/dashboard/informes",
     icon: BarChart3,
+  },
+  {
+    title: "Usuarios",
+    href: "/dashboard/usuarios",
+    icon: Users,
   },
 ]
 
