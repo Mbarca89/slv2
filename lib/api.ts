@@ -196,6 +196,14 @@ export interface UserPayload {
   role: "ADMIN" | "USER"
 }
 
+export interface ManagedUser {
+  name: string
+  surname: string
+  userName: string
+  role: "ADMIN" | "USER"
+  area?: string
+}
+
 async function userMutation(endpoint: string, options: RequestInit): Promise<string> {
   try {
     const token = getToken()
@@ -222,17 +230,33 @@ export async function createUser(data: UserPayload): Promise<string> {
   })
 }
 
-export async function updateUser(id: number, data: UserPayload): Promise<string> {
-  return userMutation(`/api/v1/users/update/${id}`, {
+export async function editUser(data: UserPayload): Promise<string> {
+  return userMutation("/api/v1/users/edit", {
     method: "PUT",
     body: JSON.stringify(data),
   })
 }
 
-export async function deleteUser(id: number): Promise<string> {
-  return userMutation(`/api/v1/users/delete/${id}`, {
+export async function deleteUser(name: string): Promise<string> {
+  return userMutation(`/api/v1/users/delete/${encodeURIComponent(name)}`, {
     method: "DELETE",
   })
+}
+
+export async function getUsers(): Promise<ManagedUser[]> {
+  try {
+    return await authFetch<ManagedUser[]>("/api/v1/users/getUsers")
+  } catch {
+    return []
+  }
+}
+
+export async function getUserByName(userName: string): Promise<ManagedUser | null> {
+  try {
+    return await authFetch<ManagedUser>(`/api/v1/users/getUserByName/${encodeURIComponent(userName)}`)
+  } catch {
+    return null
+  }
 }
 
 // ── Imagenes ────────────────────────────────────────────────
