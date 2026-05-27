@@ -276,7 +276,7 @@ export async function uploadImage(file: File): Promise<string | null> {
     const formData = new FormData()
     formData.append("image", file)
 
-    const res = await fetch(`${API_URL}/images/upload`, {
+    const res = await fetch(`${API_URL}/api/images/upload`, {
       method: "POST",
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
