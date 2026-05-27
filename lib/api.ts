@@ -8,6 +8,7 @@ import type {
   CompletedWork,
   CompletedWorkFormValues,
   DailyTask,
+  DashboardToday,
   ReportEntry,
   ReportPeriod,
   StatisticsSummary,
@@ -31,6 +32,15 @@ async function authFetch<T>(
     throw new Error(`Error ${res.status}: ${res.statusText}`)
   }
   return res.json()
+}
+
+export async function getDashboardToday(date?: string): Promise<DashboardToday | null> {
+  try {
+    const query = date ? `?date=${date}` : ""
+    return await authFetch<DashboardToday>(`/dashboard/today${query}`)
+  } catch {
+    return null
+  }
 }
 
 // ── Tareas Recurrentes ──────────────────────────────────────
