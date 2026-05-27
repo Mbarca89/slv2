@@ -119,7 +119,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
       </div>
 
       {/* Previews */}
-      {images.length > 0 && (
+      {images?.length > 0 && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {images.map((src, i) => (
             <div key={i} className="group relative aspect-video overflow-hidden rounded-lg border border-border">
