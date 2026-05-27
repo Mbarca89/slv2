@@ -105,6 +105,14 @@ export async function getClaims(userId: number, date?: string): Promise<Claim[]>
   }
 }
 
+export async function getClaimDetail(id: string | number): Promise<Claim | null> {
+  try {
+    return await authFetch<Claim>(`/claims/detail/${id}`)
+  } catch {
+    return null
+  }
+}
+
 export async function createClaim(
   userId: number,
   userName: string,
@@ -121,7 +129,7 @@ export async function createClaim(
 }
 
 export async function updateClaim(
-  id: number,
+  id: string | number,
   data: Partial<ClaimFormValues>
 ): Promise<Claim | null> {
   try {

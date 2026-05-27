@@ -60,7 +60,7 @@ export function ClaimList() {
       problemType: claim.problemType,
       description: claim.description,
       solution: claim.solution,
-      images: claim.images,
+      images: claim.images ?? [],
     })
   }
 
@@ -163,13 +163,13 @@ export function ClaimList() {
                                 <p className="text-foreground whitespace-pre-wrap">{claim.solution}</p>
                               </div>
                             )}
-                            {claim.images?.length > 0 && (
+                            {(claim.images?.length ?? 0) > 0 && (
                               <div>
                                 <p className="mb-2 text-sm font-medium text-muted-foreground">
-                                  Capturas ({claim.images.length})
+                                  Capturas ({claim.images?.length ?? 0})
                                 </p>
                                 <div className="grid grid-cols-2 gap-2">
-                                  {claim.images.map((src, i) => (
+                                  {claim.images?.map((src, i) => (
                                     <img
                                       key={i}
                                       src={src}

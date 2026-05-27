@@ -57,7 +57,7 @@ const TYPE_CONFIG = {
 } as const
 
 type ReportTask = {
-  id: number
+  id: string | number
   type: "recurrente" | "reclamo" | "trabajo"
   date: string
   userName: string
