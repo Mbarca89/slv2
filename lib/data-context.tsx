@@ -38,7 +38,7 @@ interface DataContextValue {
   // Reclamos
   claims: Claim[]
   addClaim: (data: ClaimFormValues) => Promise<void>
-  updateClaim: (id: number, data: ClaimFormValues) => Promise<boolean>
+  updateClaim: (id: string | number, data: ClaimFormValues) => Promise<boolean>
   loadingClaims: boolean
 
   // Trabajos realizados
@@ -80,30 +80,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const fetchDaily = useCallback(async () => {
     if (!user) return
     setLoadingDaily(true)
-    const data = await api.getDailyTasks(user.id, todayStr)
-    setDailyTasks(data)
+    const data = await api.getDashboardToday(todayStr)
+    const recurringAsDaily = (data?.recurringTasks ?? []).map((task) => ({
+      id: task.id,
+      userId: task.userId,
+      userName: task.userName,
+      date: data?.date ?? todayStr,
+      type: "recurrente" as const,
+      title: task.title,
+      description: task.description,
+    }))
+    setDailyTasks(recurringAsDaily)
+    setClaims(data?.claims ?? [])
+    setCompletedWorks(data?.completedWorks ?? [])
     setLoadingDaily(false)
   }, [user, todayStr])
 
   const fetchClaims = useCallback(async () => {
     if (!user) return
     setLoadingClaims(true)
-    const data = await api.getClaims(user.id, todayStr)
-    setClaims(data)
+    const data = await api.getDashboardToday(todayStr)
+    setClaims(data?.claims ?? [])
     setLoadingClaims(false)
   }, [user, todayStr])
 
   const fetchWorks = useCallback(async () => {
     if (!user) return
     setLoadingWorks(true)
-    const data = await api.getCompletedWorks(user.id, todayStr)
-    setCompletedWorks(data)
+    const data = await api.getDashboardToday(todayStr)
+    setCompletedWorks(data?.completedWorks ?? [])
     setLoadingWorks(false)
   }, [user, todayStr])
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([fetchRecurring(), fetchDaily(), fetchClaims(), fetchWorks()])
-  }, [fetchRecurring, fetchDaily, fetchClaims, fetchWorks])
+    setLoadingDaily(true)
+    setLoadingClaims(true)
+    setLoadingWorks(true)
+
+    const [recurring, dashboard] = await Promise.all([
+      user ? api.getRecurringTasks(user.id) : Promise.resolve([]),
+      user ? api.getDashboardToday(todayStr) : Promise.resolve(null),
+    ])
+
+    setRecurringTasks(recurring)
+    const recurringAsDaily = (dashboard?.recurringTasks ?? []).map((task) => ({
+      id: task.id,
+      userId: task.userId,
+      userName: task.userName,
+      date: dashboard?.date ?? todayStr,
+      type: "recurrente" as const,
+      title: task.title,
+      description: task.description,
+    }))
+    setDailyTasks(recurringAsDaily)
+    setClaims(dashboard?.claims ?? [])
+    setCompletedWorks(dashboard?.completedWorks ?? [])
+
+    setLoadingDaily(false)
+    setLoadingClaims(false)
+    setLoadingWorks(false)
+  }, [todayStr, user])
 
   useEffect(() => {
     if (user) {
@@ -189,7 +225,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const updateClaim = useCallback(
-    async (id: number, data: ClaimFormValues) => {
+    async (id: string | number, data: ClaimFormValues) => {
       const updated = await api.updateClaim(id, data)
       if (!updated) {
         toast.error("Error al editar el reclamo")

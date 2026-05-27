@@ -37,7 +37,7 @@ export interface DailyTask {
 
 // ── Reclamo / Ticket ────────────────────────────────────────
 export interface Claim {
-  id: number
+  id: string | number
   userId: number
   userName: string
   date: string
@@ -47,7 +47,7 @@ export interface Claim {
   problemType: string
   description: string
   solution: string
-  images: string[]
+  images: string[] | null
 }
 
 // ── Trabajo realizado (sin reclamo) ─────────────────────────
@@ -59,6 +59,21 @@ export interface CompletedWork {
   title: string
   area: string
   description: string
+}
+
+export interface DashboardRecurringTask {
+  id: number
+  userId: number
+  userName: string
+  title: string
+  description: string
+}
+
+export interface DashboardToday {
+  date: string
+  recurringTasks: DashboardRecurringTask[]
+  claims: Claim[]
+  completedWorks: CompletedWork[]
 }
 
 // ── Forms ───────────────────────────────────────────────────

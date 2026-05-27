@@ -1,7 +1,9 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useData } from "@/lib/data-context"
+import * as api from "@/lib/api"
+import type { Claim } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,11 +37,12 @@ const TYPE_CONFIG = {
 } as const
 
 type SummaryTask = {
-  id: number
+  id: string | number
   type: "recurrente" | "reclamo" | "trabajo"
   title: string
   description: string
   area?: string
+  userName: string
   date: string
 }
 
@@ -58,6 +61,7 @@ export function DashboardSummary() {
           title: task.title,
           description: task.description,
           area: task.area,
+          userName: task.userName,
           date: task.date,
         })),
     [dailyTasks, todayStr]
@@ -73,6 +77,7 @@ export function DashboardSummary() {
           title: claim.title,
           description: claim.description,
           area: claim.area,
+          userName: claim.userName,
           date: claim.date,
         })),
     [claims, todayStr]
@@ -88,12 +93,35 @@ export function DashboardSummary() {
           title: work.title,
           description: work.description,
           area: work.area,
+          userName: work.userName,
           date: work.date,
         })),
     [completedWorks, todayStr]
   )
 
   const todayTasks = [...recurrentTasks, ...claimTasks, ...workTasks]
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null)
+  const [claimDetail, setClaimDetail] = useState<Claim | null>(null)
+
+  useEffect(() => {
+    const selectedTask = todayTasks.find((task) => `${task.type}-${task.id}` === openTaskId)
+
+    if (!selectedTask || selectedTask.type !== "reclamo") {
+      setClaimDetail(null)
+      return
+    }
+
+    let cancelled = false
+    void api.getClaimDetail(selectedTask.id).then((detail) => {
+      if (!cancelled) {
+        setClaimDetail(detail)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [openTaskId, todayTasks])
 
   const formattedDate = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })
 
@@ -197,6 +225,9 @@ export function DashboardSummary() {
                           {task.description}
                         </p>
                       )}
+                      <p className="mt-1 text-xs text-muted-foreground/80">
+                        Responsable: {task.userName}
+                      </p>
                     </div>
                     {task.area && (
                       <span className="shrink-0 text-sm text-muted-foreground">
@@ -204,7 +235,10 @@ export function DashboardSummary() {
                       </span>
                     )}
 
-                    <Dialog>
+                    <Dialog
+                      open={openTaskId === `${task.type}-${task.id}`}
+                      onOpenChange={(open) => setOpenTaskId(open ? `${task.type}-${task.id}` : null)}
+                    >
                       <DialogTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                           <Eye className="h-4 w-4" />
@@ -231,9 +265,29 @@ export function DashboardSummary() {
                             </div>
                           )}
                           <div>
-                            <p className="text-sm font-medium text-muted-foreground">Descripcion</p>
-                            <p className="whitespace-pre-wrap">{task.description || "-"}</p>
+                            <p className="text-sm font-medium text-muted-foreground">Responsable</p>
+                            <p>{task.userName}</p>
                           </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Descripcion</p>
+                            <p className="whitespace-pre-wrap">{claimDetail?.description || task.description || "-"}</p>
+                          </div>
+                          {task.type === "reclamo" && (claimDetail?.images?.length ?? 0) > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Capturas</p>
+                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                                {claimDetail?.images?.map((src, i) => (
+                                  <a key={`${src}-${i}`} href={src} target="_blank" rel="noreferrer" className="block">
+                                    <img
+                                      src={src}
+                                      alt={`Captura ${i + 1} de ${task.title}`}
+                                      className="h-28 w-full rounded-md border border-border object-cover"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>

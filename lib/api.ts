@@ -8,6 +8,7 @@ import type {
   CompletedWork,
   CompletedWorkFormValues,
   DailyTask,
+  DashboardToday,
   ReportEntry,
   ReportPeriod,
   StatisticsSummary,
@@ -31,6 +32,15 @@ async function authFetch<T>(
     throw new Error(`Error ${res.status}: ${res.statusText}`)
   }
   return res.json()
+}
+
+export async function getDashboardToday(date?: string): Promise<DashboardToday | null> {
+  try {
+    const query = date ? `?date=${date}` : ""
+    return await authFetch<DashboardToday>(`/dashboard/today${query}`)
+  } catch {
+    return null
+  }
 }
 
 // ── Tareas Recurrentes ──────────────────────────────────────
@@ -95,6 +105,14 @@ export async function getClaims(userId: number, date?: string): Promise<Claim[]>
   }
 }
 
+export async function getClaimDetail(id: string | number): Promise<Claim | null> {
+  try {
+    return await authFetch<Claim>(`/claims/detail/${id}`)
+  } catch {
+    return null
+  }
+}
+
 export async function createClaim(
   userId: number,
   userName: string,
@@ -111,7 +129,7 @@ export async function createClaim(
 }
 
 export async function updateClaim(
-  id: number,
+  id: string | number,
   data: Partial<ClaimFormValues>
 ): Promise<Claim | null> {
   try {
